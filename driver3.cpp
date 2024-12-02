@@ -17,11 +17,12 @@ struct gpiod_chip *chip;
 struct gpiod_line_request_config config;
 struct gpiod_line_bulk lines;
 
+/* storage for pin numbers */
 unsigned int offsets_w[1];
 unsigned int offsets_r[8];
 unsigned int offsets_b[8];
 unsigned int offsets_y[8];
-
+/* storage for pin values */
 int values_w[1];
 int values_r[8];
 int values_b[8];
@@ -30,7 +31,13 @@ int values_y[8];
 int err;
 
 
-void output_fade(char colour, int value=1)
+
+/*
+ * Outputs signal to pin(s) in a predefined fade pattern.
+ * Takes a char input representing colour {'w','r','b','y'}.
+ * Returns void.
+ */
+void output_fade(char colour)
 {
 
     memset(&config, 0, sizeof(config));
@@ -38,16 +45,15 @@ void output_fade(char colour, int value=1)
     config.request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT;
     config.flags = 0;
 
-
+    /* Intensity will ramp up and down from 0 to 1 to 0 */
     float intensity = 0;
     float iintensity = 1-intensity; /* inverted intensity */
-    float phase = 10;
-    int dir = 1;
-
+    float phase = 10; /* total sleep period (ms) = intensity*phase + iintensity*phase */
+    int dir = 1; /* flag to mark when to ramp down */
 
     int n;
 
-
+    /* copy offests and values into new vector (DRY) */
     std::vector<unsigned int> offsets_fv {};
     std::vector<int> values_fv {};
 
@@ -93,11 +99,15 @@ void output_fade(char colour, int value=1)
         return;
     }
 
+    /* convert vectors back to arrays */
     unsigned int* offsets_f = &offsets_fv[0];
     int* values_f = &values_fv[0];
 
+
     gpiod_chip_get_lines(chip, offsets_f, n, &lines);
 
+
+    /* perform fade pattern */
     while (true)
     {
         if(dir==1)
@@ -143,6 +153,12 @@ void output_fade(char colour, int value=1)
 }
 
 
+
+/*
+ * Outputs input signal to pin(s).
+ * Takes a char input representing colour {'w','r','b','y'}, and an int value representing pin value {0,1}.
+ * Returns void.
+ */
 void output_solid(char colour, int value=1)
 {
 
@@ -193,24 +209,22 @@ void output_solid(char colour, int value=1)
 
 
 
+/*
+ * Entry point for program.
+ */
 int main()
 {
 
     std::cout << "Initializing christmas tree...\n";
 
     /*
+     * PIN LAYOUT:
+     * red:    1  /  6 /  8 / 21 /  2 / 17 /  5 / 12
+     * blue:   16 / 22 /  3 / 19 / 20 / 18 / 24 / 13
+     * yellow: 7 /  14 / 15 /  9 / 10 /  4 / 23 / 11
+     * white: 2
+     */
 
-    PIN LAYOUT:
-    red:    1  /  6 /  8 / 21 /  2 / 17 /  5 / 12
-    blue:   16 / 22 /  3 / 19 / 20 / 18 / 24 / 13
-    yellow: 7 /  14 / 15 /  9 / 10 /  4 / 23 / 11
-    white: 2
-
-    */
-
-    /* variables for loop */
-    int n = 1000;
-    int i = 0;
 
     chip = gpiod_chip_open("/dev/gpiochip4");
     if(!chip)
@@ -220,7 +234,7 @@ int main()
     }
 
 
-    // set pin numbers
+    /* set pin numbers */
     offsets_w[0] = 2;
     offsets_r[0] = 4; offsets_r[1] = 8; offsets_r[2] = 10; offsets_r[3] = 11; offsets_r[4] = 15;
     offsets_r[5] = 20; offsets_r[6] = 25; offsets_r[7] = 26;
@@ -232,6 +246,7 @@ int main()
 
     /* star stays lit */
     output_solid('w');
+
 
     /* loop through fading in and out coloured led's */
     while(true)
@@ -249,6 +264,5 @@ int main()
 
 
     return 0;
-
 
 }
