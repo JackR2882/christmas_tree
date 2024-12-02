@@ -48,8 +48,9 @@ void output_fade(char colour)
     /* Intensity will ramp up and down from 0 to 1 to 0 */
     float intensity = 0;
     float iintensity = 1-intensity; /* inverted intensity */
-    float phase = 10; /* total sleep period (ms) = intensity*phase + iintensity*phase */
+    float phase = 20; /* total sleep period (ms) = intensity*phase + iintensity*phase */
     int dir = 1; /* flag to mark when to ramp down */
+    float increment = 0.02; /* value to increase/decrease intensity by per tick */
 
     int n;
 
@@ -112,8 +113,8 @@ void output_fade(char colour)
     {
         if(dir==1)
         {
-            intensity += 0.01;
-            iintensity -= 0.01;
+            intensity += increment;
+            iintensity -= increment;
             if(iintensity<=0.04)
             {
                 dir=0;
@@ -121,8 +122,8 @@ void output_fade(char colour)
         }
         else if(dir==0)
         {
-            intensity -= 0.01;
-            iintensity += 0.01;
+            intensity -= increment;
+            iintensity += increment;
             if(intensity<=0.04)
             {
                 return;
